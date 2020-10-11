@@ -1,83 +1,45 @@
 from __future__ import unicode_literals
-import pydub, os, sox, youtube_dl
+import pydub, os, sox, youtube_dl, argparse
+import Functions as sr
 from pydub import AudioSegment
 import simpleaudio as sa
 
-def pitchSpeedChange(sound, speed=1.0):
-    # Manually override the frame_rate. This tells the computer how many
-    # samples to play per second
-    sound_with_altered_frame_rate = sound._spawn(sound.raw_data, overrides={
-         "frame_rate": int(sound.frame_rate * speed)
-      })
-     # convert the sound with altered frame rate to a standard frame rate
-     # so that regular playback programs will work right. They often only
-     # know how to play audio at standard frame rate (like 44.1k)
-    return sound_with_altered_frame_rate.set_frame_rate(sound.frame_rate)
+parser = argparse.ArgumentParser(description="Create a slowed + reverb mix of a song of your choice")
+parser.add_argument("-s", "--speed", type=float, default=80, help="Input a percentage between 50 and 200 to indicate how slow or fast you want the track to be. Default is 80")
+parser.add_argument("-r", "--reverb", type=int, default=50, help="Input an integer between 0 and 100 to indicate how much reverb you want to add. Default is 50")
+parser.add_argument("song",  type=str, help="Input a link to the youtube video you want to slow down - \'youtube link\'.  Must be have single quotes around string.")
+parser.add_argument("-a", "--fileAddOn", type=str, default="﹝slowed + reverb﹞", help="String that will be added onto the end of the slowed + reverb file in parentheses. Default is \'﹝slowed + reverb﹞\'. Must be have single quotes around string.")
+parser.add_argument("--hfqd", type=int, default=30, help="Input an integer between 0 and 100 to indicate how much high frequency dampening you want to add. Default is 30")
+parser.add_argument("--scale", type=int, default=100, help="Input an integer between 0 and 100 to indicate the room scale of the reverb. Default is 100")
+args = parser.parse_args()
 
-def reverb(inFileName, outFileName, verb = 0, hiFreqDamp = 50):
-    infile = inFileName + "Slowed.wav"
-    outfile = outFileName
+youtubeLink = args.song
+fileNameAddOn = args.fileAddOn
+if (args.fileAddOn != '﹝slowed + reverb﹞'):
+    fileNameAddOn = " (" + args.fileAddOn + ")"
+trackSpeed = (args.speed)/100.0
+reverbAmount = args.reverb
+hiFreqDampAmount = args.hfqd
+roomScale = args.scale
 
-    tfm = sox.Transformer()
-
-    tfm.reverb(reverberance=verb, high_freq_damping=hiFreqDamp, wet_gain=(verb*-0.10))
-
-    tfm.build_file(infile, outfile)
-
-def youtubeDL(link):
-    class MyLogger(object):
-        def debug(self, msg):
-            pass
-        def warning(self, msg):
-            pass
-        def error(self, msg):
-            print(msg)
-
-    def my_hook(d):
-        if d['status'] == 'finished':
-            print('Done downloading, now converting ...')
-
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': '%(title)s.%(ext)s',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-        'logger': MyLogger(),
-        'progress_hooks': [my_hook],
-    }
-
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([link])
-        vidInfo = ydl.extract_info(url = link, download=False)
-        videoTitle = vidInfo.get('title', None)
-        return videoTitle
-
-def playWav(fileName):
-    waveSound = sa.WaveObject.from_wave_file(fileName)
-    playSound = waveSound.play()
-    playSound.wait_done()
-
-youtubeLink = input("Enter a youtube link for a song: ")
-inFile = youtubeDL(youtubeLink) + ".mp3"
+inFile = sr.youtubeDL(youtubeLink) + ".mp3"
 inFileName = inFile[:-4]
 audioPydub = AudioSegment.from_file(inFile)
 
-audioPydub = pitchSpeedChange(audioPydub, 0.70)
+audioPydub = sr.pitchSpeedChange(audioPydub, trackSpeed)
 
 intermediateFile = inFileName + "Slowed.wav"
 
 audioPydub.export(intermediateFile, "wav")
 
-outFileName = inFileName + "﹝slowed + reverb﹞.mp3"
+outFileName = inFileName + fileNameAddOn + ".mp3"
 
-reverb(inFileName, outFileName, 40, 40)
+sr.reverb(inFileName, outFileName, reverbAmount, hiFreqDampAmount, roomScale)
 
 song = AudioSegment.from_file(outFileName)
 
 os.remove(intermediateFile)
+os.remove(inFile)
 
 # songWav = song.export(inFileName + "﹝slowed + reverb﹞.wav", "wav")
 # playWav(inFileName + "﹝slowed + reverb﹞.wav")
