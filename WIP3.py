@@ -1,3 +1,5 @@
+# Main File where the audio is slowed or sped up, and reverb is added. A function to play the wav file from the terminal is also included
+
 import simpleaudio as sa
 import pydub, os, sox
 from pydub import AudioSegment
