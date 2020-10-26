@@ -3,6 +3,10 @@ import pydub, os, sox, youtube_dl
 from pydub import AudioSegment
 import simpleaudio as sa
 
+
+# Function which changes both speed and pitch of a pydub audio instance. Takes a pydub instance of audio, and a double for the audio speed
+# Taken from Stack Overflow user Jiaaro, who explains the logic in the comments of the function: https://stackoverflow.com/questions/43408833/how-to-increase-decrease-playback-speed-on-wav-file
+# Essentially, you change the framerate of the song, and then resample it at 44.1k hz to allow it to be played
 def pitchSpeedChange(sound, speed=1.0):
     # Manually override the frame_rate. This tells the computer how many
     # samples to play per second
@@ -14,6 +18,10 @@ def pitchSpeedChange(sound, speed=1.0):
      # know how to play audio at standard frame rate (like 44.1k)
     return sound_with_altered_frame_rate.set_frame_rate(sound.frame_rate)
 
+# Reverb function takes the name of the original audio, name of the outbound file, and values for the amount of reverb, high frequency dampening, and room scale
+# Utilizes the SoX set of effects to apply reverb through an effects chain which just includes a reverb module
+# Since Reverb adds to the gain of a track, the wet gain is reduced based on the amount of reverb added to the track to prevent clipping (i.e. a reverb value of 100 reduces the wet gain by 10 db).
+# Creates the outbound file at the end
 def reverb(inFileName, outFileName, verb = 50, hiFreqDamp = 50, roomScale = 100):
     infile = inFileName + "Slowed.wav"
     outfile = outFileName
@@ -24,6 +32,7 @@ def reverb(inFileName, outFileName, verb = 50, hiFreqDamp = 50, roomScale = 100)
 
     tfm.build_file(infile, outfile)
 
+# 
 def youtubeDL(link):
     class MyLogger(object):
         def debug(self, msg):
